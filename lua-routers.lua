@@ -30,27 +30,30 @@ function Router:post(endpoint,callback)
 	return '<router on stack>'
 end
 
-function Router:run()
-	if self.tcp:bind(self.ip,self.pt) ~= nil then
-	if self.tcp:listen() ~= nil then
+function http_parse(client_socket)
+	local ctrl = true
+	local data = ''
 	
+	while ctrl do
+		tmp = client_socket:receive('*ll')
+		if tmp ~= nil and #tmp > 0 then  data = data..tmp else ctrl = false end
+	end
+
+	return data, client_socket
+end
+
+function Router:run()
+	if self.tcp:bind(self.ip,self.pt) ~= nil and self.tcp:listen() ~= nil then
 		print('app run on '..self.ip..':'..self.pt)
+			
 		while 1 do 
 		    print('waiting..')
-			tcp_reqs = self.tcp:accept()
-			while 1 do
-				tcp_data = tcp_reqs:receive(1)
-				print(tcp_data)
-			end
+			local data, client_socket = http_parse(self.tcp:accept())
+			print(data)
+			
 		end
-	end
 	end
 end 
 
 local app = Router:new('127.0.0.1',3000)
-
-app:get('/root',function(response) 
-	print(response)
-end)
-
 app:run()
