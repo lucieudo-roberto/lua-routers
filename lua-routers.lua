@@ -1,6 +1,7 @@
 
 
 local sock = require 'socket'
+local http_parser = require('libs/http-parser')
 
 local Router = {}
 
@@ -9,38 +10,24 @@ function Router:new(ip,port)
     setmetatable(_data_, self)
 	self.__index = self
 	_data_.tcp = sock.tcp()
-	_data_.get_edpt = {} -- get endpoints
-	_data_.get_cabk = {} -- get callbacks
-	_data_.pot_edpt = {} -- post
-	_data_.pot_cabk = {}
+	_data_.get_endpoinst = {}
+	_data_.pos_endpoints = {}
 	_data_.ip = ip
 	_data_.pt = port
+	_data_.public_dir = '../public/'
 	return _data_
 end
 
 function Router:get(endpoint,callback)
-	self.get_edpt[#self.get_edpt+1] = endpoint
-	self.get_cabk[#self.get_cabk+1] = callback
+	self.get_endpoinst[endpoint] = callback
 	return '<router on stack>'
 end
 
 function Router:post(endpoint,callback)
-	self.pot_edpt[#self.pot_edpt+1] = endpoint
-	self.pot_cabk[#self.pot_cabk+1] = callback
+	self.pos_endpoinst[endpoint] = callback
 	return '<router on stack>'
 end
 
-function http_parse(client_socket)
-	local ctrl = true
-	local data = ''
-	
-	while ctrl do
-		tmp = client_socket:receive('*ll')
-		if tmp ~= nil and #tmp > 0 then  data = data..tmp else ctrl = false end
-	end
-
-	return data, client_socket
-end
 
 function Router:run()
 	if self.tcp:bind(self.ip,self.pt) ~= nil and self.tcp:listen() ~= nil then
@@ -48,12 +35,29 @@ function Router:run()
 			
 		while 1 do 
 		    print('waiting..')
-			local data, client_socket = http_parse(self.tcp:accept())
-			print(data)
+			local client_socket, errors = self.tcp:accept()
+			http_table = http_parser(client_socket)
+
+			if http_table.method == 'GET' then
+				if self.get_endpoinst[http_table.router] ~= nil then
+					-- endpoint implemented by user
+				else 
+					client_socket:send('HTTP/1.1 404 Not Found\nContent-Type: text/html\n\n<html><body><h1>404 - page not found</h1></body></html>')
+					client_socket:close()
+				end
+				print(http_table.router)
+			end
 			
+			if http_table.method == 'POST' then
+				print(http_table.bodyraw) 
+				client_socket:send('<ok>')
+				client_socket:close()
+			end
 		end
 	end
+
+	self.tcp:close()
 end 
 
-local app = Router:new('127.0.0.1',3000)
-app:run()
+
+return Router
