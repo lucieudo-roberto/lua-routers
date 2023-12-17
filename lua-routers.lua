@@ -10,7 +10,7 @@ function Router:new(ip,port)
     setmetatable(_data_, self)
 	self.__index = self
 	_data_.tcp = sock.tcp()
-	_data_.get_endpoinst = {}
+	_data_.get_endpoints = {}
 	_data_.pos_endpoints = {}
 	_data_.ip = ip
 	_data_.pt = port
@@ -19,39 +19,42 @@ function Router:new(ip,port)
 end
 
 function Router:get(endpoint,callback)
-	self.get_endpoinst[endpoint] = callback
-	return '<router on stack>'
+	self.get_endpoints[endpoint] = callback
 end
 
 function Router:post(endpoint,callback)
-	self.pos_endpoinst[endpoint] = callback
-	return '<router on stack>'
+	self.pos_endpoints[endpoint] = callback
 end
 
 
 function Router:run()
 	if self.tcp:bind(self.ip,self.pt) ~= nil and self.tcp:listen() ~= nil then
-		print('app run on '..self.ip..':'..self.pt)
+		-- print('app run on '..self.ip..':'..self.pt)
 			
 		while 1 do 
-		    print('waiting..')
 			local client_socket, errors = self.tcp:accept()
 			http_table = http_parser(client_socket)
 
 			if http_table.method == 'GET' then
-				if self.get_endpoinst[http_table.router] ~= nil then
+				if self.get_endpoints[http_table.router] ~= nil then
 					-- endpoint implemented by user
+					print('router: ',http_table.router)
+
 				else 
-					client_socket:send('HTTP/1.1 404 Not Found\nContent-Type: text/html\n\n<html><body><h1>404 - page not found</h1></body></html>')
+					print('router invalid')
+					client_socket:send('303')
 					client_socket:close()
 				end
-				print(http_table.router)
 			end
 			
 			if http_table.method == 'POST' then
-				print(http_table.bodyraw) 
-				client_socket:send('<ok>')
-				client_socket:close()
+				if self.pos_endpoints[http_table.router] ~= nil then
+					self.pos_endpoints[http_table.router](client_socket,http_table)
+				else
+					print('router invalid')
+					client_socket:send('303')
+					client_socket:close()
+				end
 			end
 		end
 	end
