@@ -41,10 +41,27 @@ myRouter:run()
 ```
 
 ## Progresso
-
-- **Implementado:** Suporte básico para roteamento GET e POST.
-  
-- **Em Andamento:** Desenvolvimento da biblioteca `parseHttp`. Algumas opções de segurança e um parser para endpoints estão em processo.
+### http-parse.lua
+    TASK LIST
+    
+    [1/1] parse dos cabeçalhos http ✔
+    [2/3] parse linha de requisição
+        [1/1] parse método ✔
+        [1/1] parse version ✔
+        [0/4] parse recurso
+            [] protocolo
+            [] host
+            [] recurso
+            [] query parameters
+    [1/X] parse payload
+        [2/X] POST
+            [1/1] raw  parse ✔
+            [1/1] json parse ✔
+            [0/0] xml  parser
+        [0/X] GET
+        [0/X] PUT
+        [0/X] DELET
+        [0/X] PATCH
 
 ## Contribuindo
 
